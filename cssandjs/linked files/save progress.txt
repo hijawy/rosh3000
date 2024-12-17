@@ -1,0 +1,73 @@
+To save progress in this code, you can use the localStorage API, which allows you to store key-value pairs in the user's browser. Here's an example of how you can modify the code to save the user's progress:
+
+When the user answers a question, save their answer to localStorage:
+
+
+function markAnswer(isCorrect) {
+  if (isCorrect) {
+    correctAnswers++;
+  } else {
+    wrongAnswers++;
+  }
+  localStorage.setItem('answer_' + questionIndex, isCorrect);
+  displayStats();
+}
+This will save the user's answer (whether it's correct or wrong) to localStorage using a key that includes the question index. For example, if the user answers question #2, their answer will be saved under the key answer_1 (since arrays are zero-indexed).
+
+When the user loads the page, check if they have any saved progress:
+
+
+
+function init() {
+  if (localStorage.getItem('generatedQuestions')) {
+    generatedQuestions = JSON.parse(localStorage.getItem('generatedQuestions'));
+    correctAnswers = parseInt(localStorage.getItem('correctAnswers'));
+    wrongAnswers = parseInt(localStorage.getItem('wrongAnswers'));
+    questionIndex = parseInt(localStorage.getItem('questionIndex'));
+    displayQuestion();
+  } else {
+    generateQuestions();
+  }
+}
+This code checks if the user has any saved progress by looking for the generatedQuestions key in localStorage. If it exists, it loads the generated questions and the user's progress (correctAnswers, wrongAnswers, and questionIndex) from localStorage and displays the current question. If the key doesn't exist, it generates new questions.
+
+When the user navigates to the next or previous question, load their answer from localStorage (if they have one):
+javascript
+Copy code
+function displayQuestion() {
+  var questionNumbersDiv = document.getElementById('questionNumbers');
+  questionNumbersDiv.innerHTML = '   CuretFile= '+ generatedQuestions[questionIndex]+'( Question ' + (questionIndex + 1) + ' of ' + generatedQuestions.length+ ' ) ';
+
+  var questionFrame = document.getElementById('questionFrame');
+  questionFrame.src =  generatedQuestions[questionIndex]  + '.html';
+
+  var savedAnswer = localStorage.getItem('answer_' + questionIndex);
+  if (savedAnswer !== null) {
+    document.getElementById('answerBox').value = savedAnswer === 'true' ? 'correct' : 'wrong';
+  }
+}
+This code checks if the user has a saved answer for the current question by looking for the answer_<questionIndex> key in localStorage. If it exists, it sets the value of the answerBox textarea to either "correct" or "wrong", depending on the saved answer.
+
+Finally, when the user finishes the quiz (i.e. answers all the questions), remove their progress from localStorage:
+
+
+
+function displayStats() {
+  var statsDiv = document.getElementById('stats');
+  var totalAnswers = correctAnswers + wrongAnswers;
+  var correctPercentage = Math.round(correctAnswers / totalAnswers * 100);
+  var wrongPercentage = Math.round(wrongAnswers / totalAnswers * 100);
+  statsDiv.innerHTML = '  TotalQuistion= '+totalAnswers+'    Correct: ' + correctPercentage + '%, Wrong: ' + wrongPercentage + '%' ;
+
+  if (questionIndex === generatedQuestions.length - 1) {
+    localStorage.removeItem('generatedQuestions');
+    localStorage.removeItem('correctAnswers');
+    localStorage.removeItem('wrongAnswers');
+    localStorage.removeItem('questionIndex');
+    for (var i = 0; i < generatedQuestions.length; i++) {
+      localStorage.removeItem('answer_' + i);
+    }
+  }
+}
+
+This code checks if the user has answered all the questions by comparing the questionIndex

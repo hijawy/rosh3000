@@ -1,0 +1,75 @@
+cmd:
+FOR %G IN (*.html) do (find /n /i "SearchWord" "%G")
+
+ findstr /?
+
+type *.html | findstr "dka"
+
+findstr /i DKA *.htm
+
+findstr /n DKA  *.html
+
+
+-Run the command below with the /r parameter to process the search string as a regular expression ([a-z]*te). As a result, the command finds all the words in the test2.txt file that ends with (te).
+
+ findstr /r [a-z]*DKA *.html
+
+
+POWERSHELL:
+Select-String -Path *.HTML -pattern DKA,"diabetes mellitus"
+
+dir  -I *.HTML, *.TXT -R | Select-String  DKA,"diabetes mellitus",HHS
+
+Get-ChildItem -Path *.HTML -Recurse | Select-String -Pattern DKA,'diabetes mellitus',HHS
+
+Get-ChildItem -Recurse | Where-Object { $_ | Select-String -Pattern "DKA" }
+
+Get-ChildItem -Recurse | Select-String "DKA" -List | Select Path
+
+
+How do I filter words "black" and "white"?
+The following command will display all lines containing "black" NOR "white":
+
+findstr /v "black white" blackwhite.txt
+The following command will display all lines containing "black" OR "white":
+
+findstr "black white" blackwhite.txt
+The following command will display all lines containing EXACTLY "black white":
+
+findstr /c:"black white" blackwhite.txt
+The following command will display all lines containing "black" AND "white":
+
+findstr "white" blackwhite.txt | findstr "black"
+Notes:
+
+When the search string contains multiple words, separated with spaces, then findstr will return lines that contain either word (OR).
+
+A literal search (/C:string) will reverse this behaviour and allow searching for a phrase or sentence. A literal search also allow searching for punctuation characters.
+
+Example data file (blackwhite.txt):
+
+red
+black
+white
+blue
+black white
+black and white
+Example output:
+
+F:\test>findstr /v "black white" blackwhite.txt
+
+red
+blue
+
+F:\test>findstr "black white" blackwhite.txt
+black
+white
+black white
+black and white
+
+F:\test>findstr /c:"black white" blackwhite.txt
+black white
+
+F:\test>findstr "white" blackwhite.txt | findstr "black"
+black white
+black and white

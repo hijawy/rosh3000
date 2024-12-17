@@ -1,0 +1,1 @@
+Formatting={init:function(){this.bindEvents()},bindEvents:function(){$("#highlight").on("click",highlight_text),$("#strikeout").on("click",strikeout_text),$("#erase").on("click",erase_text),$("#flag_question").on("click",flag_this_question),$("#normal_lab_values").on("click",lab_values_popup)}},$(function(){Formatting.init()});

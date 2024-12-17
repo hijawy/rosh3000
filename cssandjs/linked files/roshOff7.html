@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Reviow</title>
+  
+ <style>
+#progress-bar {
+  display: none;
+}
+</style>
+
+</head>
+<body> 
+
+  <label for="numQuestions">Number of Questions:</label>
+  <input type="number" id="numQuestions" value="100" min="1" max="5000" required>
+  <button onclick="generateQuestions()">Generate Questions</button>
+ <a id="timer"></a>
+<button onclick="saveProgressToFile()">Save Progress</button>
+<button onclick="LoadProgressfromFile()">Load Progress</button>
+
+    <button onclick="markAnswer(true)">Correct</button>
+  <button onclick="markAnswer(false)">Wrong</button>
+
+    <button onclick="previousQuestion()">Previous</button>
+  <button onclick="nextQuestion()">Next</button>
+  <div id="questionNumbers"></div>  
+ 
+  <iframe id="questionFrame" width="100%" height="800"></iframe>
+  
+
+
+  
+  
+  <label for="search-input">Enter word to search for:</label>
+  <input type="text" id="search-input">
+  <button onclick="searchFiles()">Search</button>
+  <button onclick="cancelSearch()">Cancel</button>
+  
+  
+   <button onclick="startTimer(generatedQuestions.length)">StartTimer</button>  
+  <button onclick="markAnswer(true)">Correct</button>
+  <button onclick="markAnswer(false)">Wrong</button>
+ <a id="stats"></a>
+   <button onclick="previousQuestion()">Previous</button>
+  <button onclick="nextQuestion()">Next</button>
+  
+  <progress id="progress-bar" value="0" max="100"></progress>  
+ <div></div>
+  <textarea id="answerBox"  rows="4" cols="150"></textarea>
+  <textarea id="answerBox2" rows="4" cols="150"></textarea>
+ 
+ 
+  <script>
+  
+  //  <textarea id="answerBox" rows="4" cols="25"></textarea>    <textarea id="answerBox2" rows="4" cols="100" width="50%"></textarea>
+    var questionIndex = 0;
+    var generatedQuestions = [];
+    var correctAnswers = 0;
+    var wrongAnswers = 0;
+	var totalAnswers = 0;
+let timerEl = document.getElementById("timer");
+let timeLeft = 600; // 10 minutes in seconds
+let timerInterval;
+
+    function generateQuestions() {
+      var numQuestions = document.getElementById('numQuestions').value;
+      var min = 525583622;
+      var max = 525588621;
+      if (numQuestions > 5000) {
+        numQuestions = 5000;
+      }
+      var randomNumbers = [];
+
+      while (randomNumbers.length < numQuestions) {
+        var randomNum = Math.floor(Math.random() * (max - min + 1)) + min;
+        if (randomNumbers.indexOf(randomNum) === -1) {
+          randomNumbers.push(randomNum);
+        }
+      }
+
+      generatedQuestions = randomNumbers;
+      questionIndex = 0;
+      displayQuestion();
+	  //startTimer(generatedQuestions.length);
+	   
+    }
+
+function displayQuestion() {
+  var questionNumbersDiv = document.getElementById('questionNumbers');
+  questionNumbersDiv.innerHTML = '   CuretFile= '+ generatedQuestions[questionIndex]+'( Question ' + (questionIndex + 1) + ' of ' + generatedQuestions.length+ ' ) ';
+
+  var questionFrame = document.getElementById('questionFrame');
+  questionFrame.src =  generatedQuestions[questionIndex]  + '.html';
+
+  var savedAnswer = localStorage.getItem('answer_' + questionIndex);
+  if (savedAnswer !== null) {
+    document.getElementById('answerBox').value = savedAnswer === 'true' ? 'correct' : 'wrong';
+  }
+}
+
+    function previousQuestion() {
+      if (questionIndex > 0) {
+        questionIndex--;
+        displayQuestion();
+      }
+    }
+
+    function nextQuestion() {
+      if (questionIndex < generatedQuestions.length - 1) {
+        questionIndex++;
+        displayQuestion();
+        var answer = document.getElementById('answerBox').value;
+        console.log(answer);
+      }
+    }
+
+
+function markAnswer(isCorrect) {
+  if (isCorrect) {
+    correctAnswers++;
+	totalAnswers++;
+    document.getElementById("answerBox").value += totalAnswers +"- Q "+ (questionIndex + 1)  + ": Correct.      ";
+  } else {
+    wrongAnswers++;
+	totalAnswers++;
+    document.getElementById("answerBox").value += totalAnswers + "- Q "+ (questionIndex + 1)  + ": Wrong.       "; //": Wrong.\n"
+  }
+  displayStats();
+}
+
+function displayStats() {
+  var statsDiv = document.getElementById('stats');
+  var totalAnswers = correctAnswers + wrongAnswers;
+  var correctPercentage = Math.round(correctAnswers / totalAnswers * 100);
+  var wrongPercentage = Math.round(wrongAnswers / totalAnswers * 100);
+  statsDiv.innerHTML = '  TotalQuistion= '+totalAnswers+'    Correct: ' + correctPercentage + '%, Wrong: ' + wrongPercentage + '%' ;
+
+  if (questionIndex === generatedQuestions.length - 1) {
+    localStorage.removeItem('generatedQuestions');
+    localStorage.removeItem('correctAnswers');
+    localStorage.removeItem('wrongAnswers');
+    localStorage.removeItem('questionIndex');
+    for (var i = 0; i < generatedQuestions.length; i++) {
+      localStorage.removeItem('answer_' + i);
+    }
+  }
+}
+function LoadProgressfromFile() {
+  var input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = function() {
+    var file = this.files[0];
+    var reader = new FileReader();
+    reader.onload = function() {
+      var data = JSON.parse(reader.result);
+      generatedQuestions = data.generatedQuestions;
+      correctAnswers = data.correctAnswers;
+      wrongAnswers = data.wrongAnswers;
+      questionIndex = data.questionIndex;
+      displayQuestion();
+      displayStats();
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+function saveProgressToFile() {
+  var data = {
+    generatedQuestions: generatedQuestions,
+    correctAnswers: correctAnswers,
+    wrongAnswers: wrongAnswers,
+    questionIndex: questionIndex
+  };
+
+  var filename = 'quiz-progress.json';
+
+  if (window.navigator.msSaveOrOpenBlob) { // IE10+
+    var blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+    window.navigator.msSaveOrOpenBlob(blob, filename);
+  } else {
+    var a = document.createElement('a');
+    var url = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: 'application/json' }));
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function() {
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    }, 0);
+  }
+}
+function startTimer(questionNumber) {	
+  clearInterval(timer.intervalID); // clear the old timer
+  timer.seconds = 0;
+  timer.minutes = 0;
+  timer.innerHTML = "00:00";
+  let timePerQuestion = 60; // 1 minute per question
+  let timeLeft = questionNumber * timePerQuestion; // calculate total time based on question number
+  let timerInterval = setInterval(() => {
+    timeLeft--;
+    let minutes = Math.floor(timeLeft / 60);
+    let seconds = timeLeft % 60;
+
+  
+    if (seconds < 10) {
+      seconds = "0" + seconds;
+    }
+    let displayTime = ` minute${minutes > 1 ? 's' : ''}  ${minutes}: ${seconds} second${seconds > 1 ? 's' : ''}`;
+
+    timerEl.textContent = displayTime;
+
+    if (timeLeft === 0) {
+      clearInterval(timerInterval);
+      alert("Time's up!");
+    }
+  }, 1000);
+}
+
+
+
+
+
+
+
+function init() {
+  //var duration = 60 * 15; // 15 minutes in seconds
+  //var display = document.querySelector('#timer');
+  //startTimer(duration, display);
+ 
+  if (localStorage.getItem('generatedQuestions')) {
+    generatedQuestions = JSON.parse(localStorage.getItem('generatedQuestions'));
+    correctAnswers = parseInt(localStorage.getItem('correctAnswers'));
+    wrongAnswers = parseInt(localStorage.getItem('wrongAnswers'));
+    questionIndex = parseInt(localStorage.getItem('questionIndex'));
+    displayQuestion();
+  } else {
+    generateQuestions();
+  }
+}
+
+//to search function work
+     // add --disable-web-security --user-data-dir=%LOCALAPPDATA%\Google\Chrome\User Data to chrome link
+  	//C:\Progra~1\Google\Chrome\Applic~1\chrome.exe --disable-web-security --user-data-dir=%LOCALAPPDATA%\Google\Chrome\USERDA~2 -incognito --new-window %1 %2 %3 %4
+	//dont forget to write path to file to open 
+	//C:\Progra~1\Google\Chrome\Applic~1\chrome.exe --disable-web-security --user-data-dir=%LOCALAPPDATA%\Google\Chrome\USERDA~2 -incognito --new-window %temp%\54\Reviow.html %1 %2 %3 %4
+	
+    let shouldCancel = false;
+
+    function searchFiles() {
+      const wordToSearch = document.getElementById('search-input').value.trim();
+      if (wordToSearch === '') {
+        alert('Please enter a search term!');
+        return;
+      }
+      const progressBar = document.getElementById('progress-bar');
+      progressBar.value = 0;
+	   progressBar.style.display = "block";
+
+      const htmlFilePaths = [];
+      for (let i = 525583622; i <= 525588621; i++) {
+        const htmlFilePath = `file:///F:/Roshwww/1/${i}.html`;
+		//const htmlFilePath = `file:///G:/../${i}.html`;
+				//const htmlFilePath = `file:///G:/../${i}.html`;
+						//const htmlFilePath = `file:///G:/../${i}.html`;
+        htmlFilePaths.push(htmlFilePath);
+      }
+
+      let progress = 0;
+      const matchedFiles = [];
+      shouldCancel = false;
+      htmlFilePaths.forEach((htmlFilePath, index) => {
+        if (shouldCancel) return;
+        fetch(htmlFilePath)
+          .then(response => response.text())
+          .then(htmlText => {
+            if (shouldCancel) return;
+            const regex = new RegExp(wordToSearch, 'gi');
+            const match = htmlText.match(regex);
+            if (match) {
+              const numMatches = match.length;
+              matchedFiles.push({ path: htmlFilePath, numMatches: numMatches });
+            }
+            progress += 1;
+            progressBar.value = progress / htmlFilePaths.length * 100;
+
+            if (progress === htmlFilePaths.length) {
+              if (shouldCancel) {
+                alert('Search cancelled!');
+				progressBar.style.display = "none";
+              } else if (matchedFiles.length === 0) {
+                alert('No matches found!');
+				progressBar.style.display = "none";
+              } else {
+                const searchResultsPage = window.open('');
+                matchedFiles.sort((a, b) => b.numMatches - a.numMatches);
+                matchedFiles.forEach((matchedFile) => {
+                  const link = document.createElement('a');
+                  link.href = matchedFile.path;
+                  link.target = '_blank';
+                  link.innerText = `${matchedFile.path} (${matchedFile.numMatches} matches)`;
+                  searchResultsPage.document.body.appendChild(link);
+                  searchResultsPage.document.body.appendChild(document.createElement('br'));
+                });
+              }
+            }
+          });
+      });
+    }
+
+    function cancelSearch() {
+      shouldCancel = true;
+
+    }
+	
+    window.onload = init;
+  </script>
+
+</body>
+</html>

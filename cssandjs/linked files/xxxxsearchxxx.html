@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>File Search</title>
+</head>
+<body>
+	<label for="search-input">Enter word to search for:</label>
+	<input type="text" id="search-input">
+	<button onclick="searchFiles()">Search</button>
+	<progress id="progress-bar" value="0" max="100"></progress>
+
+	<script>
+	//C:\Progra~1\Google\Chrome\Applic~1\chrome.exe --disable-web-security --user-data-dir=%LOCALAPPDATA%\Google\Chrome\USERDA~2 -incognito --new-window %1 %2 %3 %4
+	//dont forget to write path to file to open 
+	//C:\Progra~1\Google\Chrome\Applic~1\chrome.exe --disable-web-security --user-data-dir=%LOCALAPPDATA%\Google\Chrome\USERDA~2 -incognito --new-window %temp%\54\Reviow.html %1 %2 %3 %4
+		function searchFiles() {
+			const wordToSearch = document.getElementById('search-input').value;
+			const progressBar = document.getElementById('progress-bar');
+			progressBar.value = 0;
+
+			const htmlFilePaths = [];
+			for (let i = 525583622; i <= 525588621; i++) {
+			  //const htmlFilePath = `file:///G:/Review/${i}.html`;
+			  //const htmlFilePath = `file:///../${i}.html`;
+			  const htmlFilePath = `file:///G:/RoshReview5000QHtmlModefiedwitimagesV9/${i}.html`;
+			  htmlFilePaths.push(htmlFilePath);
+			}
+
+			let progress = 0;
+			const matchedFiles = [];
+			htmlFilePaths.forEach((htmlFilePath, index) => {
+			  fetch(htmlFilePath)
+			    .then(response => response.text())
+			    .then(htmlText => {
+			      const regex = new RegExp(wordToSearch, 'gi');
+			      const match = htmlText.match(regex);
+			      if (match) {
+			        const numMatches = match.length;
+			        matchedFiles.push({ path: htmlFilePath, numMatches: numMatches });
+			      }
+			      progress += 1;
+			      progressBar.value = progress / htmlFilePaths.length * 100;
+
+			      if (progress === htmlFilePaths.length) {
+			        if (matchedFiles.length === 0) {
+			          alert('No matches found!');
+			        } else {
+			          const searchResultsPage = window.open('');
+			          matchedFiles.forEach((matchedFile) => {
+			            const link = document.createElement('a');
+			            link.href = matchedFile.path;
+			            link.target = '_blank';
+			            link.innerText = `${matchedFile.path} (${matchedFile.numMatches} matches)`;
+			            searchResultsPage.document.body.appendChild(link);
+			            searchResultsPage.document.body.appendChild(document.createElement('br'));
+			          });
+			        }
+			      }
+			    });
+			});
+		}
+	</script>
+</body>
+</html>

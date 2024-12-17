@@ -1,0 +1,1 @@
+NormalLabValues={close_values_popup_on_click:function(){$("#close_values_popup").on("click",close_values_popup)},open_values_popup_on_click:function(){$("#open_values_popup").on("click",lab_values_popup)}},$(function(){NormalLabValues.close_values_popup_on_click()});

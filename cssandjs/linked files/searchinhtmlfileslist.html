@@ -1,0 +1,34 @@
+<html>
+<head>
+  <title>File Search</title>
+  <script>
+    function searchFiles() {
+      var searchText = document.getElementById("searchText").value;
+      var resultsDiv = document.getElementById("results");
+      resultsDiv.innerHTML = "";
+
+      for (var i = 525583621; i < 525583621 + 5000; i++) {
+        var fileName = i.toString() + ".html";
+        var fileContent = readFile(fileName);
+        if (fileContent.includes(searchText)) {
+          var resultItem = document.createElement("p");
+          resultItem.innerHTML = "Found in file " + fileName;
+          resultsDiv.appendChild(resultItem);
+        }
+      }
+    }
+
+    function readFile(fileName) {
+      // This is just a placeholder function for demonstration purposes.
+      // In a real implementation, you would need to write code to actually read the contents of the file.
+      return "This is the content of file " + fileName;
+    }
+  </script>
+</head>
+<body>
+  <h1>File Search</h1>
+  <input type="text" id="searchText" placeholder="Enter search text">
+  <button onclick="searchFiles()">Search</button>
+  <div id="results"></div>
+</body>
+</html>
