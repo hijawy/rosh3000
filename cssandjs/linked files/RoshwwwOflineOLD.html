@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Random Number Example</title>
+</head>
+<body>
+  <label for="numQuestions">Number of Questions:</label>
+  <input type="number" id="numQuestions" value="10" min="1" max="5000" required>
+  <button onclick="generateQuestions()">Generate Questions</button>
+
+  <div id="questionNumbers"></div>
+
+  <script>
+    function generateQuestions() {
+      var numQuestions = document.getElementById('numQuestions').value;
+      var min = 525583622;
+      var max = 525588621;
+	  if (numQuestions > 5000) {
+  numQuestions = 5000;
+}
+      var randomNumbers = [];
+
+      while (randomNumbers.length < numQuestions) {
+        var randomNum = Math.floor(Math.random() * (max - min + 1)) + min;
+        if (randomNumbers.indexOf(randomNum) === -1) {
+          randomNumbers.push(randomNum);
+        }
+      }
+
+      var questionNumbersDiv = document.getElementById('questionNumbers');
+      questionNumbersDiv.innerHTML = '';
+
+      for (var i = 0; i < randomNumbers.length; i++) {
+        var link = document.createElement('a');
+        link.href =randomNumbers[i]+ '.html';
+        link.textContent = 'Question Number ' + (i+1);
+        var paragraph = document.createElement('p');
+        paragraph.appendChild(link);
+        questionNumbersDiv.appendChild(paragraph);
+      }
+    }
+  </script>
+
+</body>
+</html>
+
+
+

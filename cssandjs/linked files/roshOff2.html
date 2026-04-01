@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Random Number Example</title>
+</head>
+<body>
+  <label for="numQuestions">Number of Questions:</label>
+  <input type="number" id="numQuestions" value="10" min="1" max="5000" required>
+  <button onclick="generateQuestions()">Generate Questions</button>
+
+<button onclick="saveProgressToFile()">Save Progress</button>
+<button onclick="LoadProgressfromFile()">Load Progress</button>
+
+    <button onclick="markAnswer(true)">Correct</button>
+  <button onclick="markAnswer(false)">Wrong</button>
+
+    <button onclick="previousQuestion()">Previous</button>
+  <button onclick="nextQuestion()">Next</button>
+  <div id="questionNumbers"></div>  
+  <iframe id="questionFrame" width="100%" height="800"></iframe>
+
+   
+  <button onclick="markAnswer(true)">Correct</button>
+  <button onclick="markAnswer(false)">Wrong</button>
+ <a id="stats"></a>
+   <button onclick="previousQuestion()">Previous</button>
+  <button onclick="nextQuestion()">Next</button>
+  <textarea id="answerBox" rows="4" cols="250"></textarea>
+
+  
+
+  <script>
+    var questionIndex = 0;
+    var generatedQuestions = [];
+    var correctAnswers = 0;
+    var wrongAnswers = 0;
+
+    function generateQuestions() {
+      var numQuestions = document.getElementById('numQuestions').value;
+      var min = 525583622;
+      var max = 525588621;
+      if (numQuestions > 5000) {
+        numQuestions = 5000;
+      }
+      var randomNumbers = [];
+
+      while (randomNumbers.length < numQuestions) {
+        var randomNum = Math.floor(Math.random() * (max - min + 1)) + min;
+        if (randomNumbers.indexOf(randomNum) === -1) {
+          randomNumbers.push(randomNum);
+        }
+      }
+
+      generatedQuestions = randomNumbers;
+      questionIndex = 0;
+      displayQuestion();
+    }
+
+function displayQuestion() {
+  var questionNumbersDiv = document.getElementById('questionNumbers');
+  questionNumbersDiv.innerHTML = '   CuretFile= '+ generatedQuestions[questionIndex]+'( Question ' + (questionIndex + 1) + ' of ' + generatedQuestions.length+ ' ) ';
+
+  var questionFrame = document.getElementById('questionFrame');
+  questionFrame.src =  generatedQuestions[questionIndex]  + '.html';
+
+  var savedAnswer = localStorage.getItem('answer_' + questionIndex);
+  if (savedAnswer !== null) {
+    document.getElementById('answerBox').value = savedAnswer === 'true' ? 'correct' : 'wrong';
+  }
+}
+
+    function previousQuestion() {
+      if (questionIndex > 0) {
+        questionIndex--;
+        displayQuestion();
+      }
+    }
+
+    function nextQuestion() {
+      if (questionIndex < generatedQuestions.length - 1) {
+        questionIndex++;
+        displayQuestion();
+        var answer = document.getElementById('answerBox').value;
+        console.log(answer);
+      }
+    }
+
+
+    function markAnswer(isCorrect) {
+      if (isCorrect) {
+        correctAnswers++;
+      } else {
+        wrongAnswers++;
+      }
+      displayStats();
+    }
+
+function displayStats() {
+  var statsDiv = document.getElementById('stats');
+  var totalAnswers = correctAnswers + wrongAnswers;
+  var correctPercentage = Math.round(correctAnswers / totalAnswers * 100);
+  var wrongPercentage = Math.round(wrongAnswers / totalAnswers * 100);
+  statsDiv.innerHTML = '  TotalQuistion= '+totalAnswers+'    Correct: ' + correctPercentage + '%, Wrong: ' + wrongPercentage + '%' ;
+
+  if (questionIndex === generatedQuestions.length - 1) {
+    localStorage.removeItem('generatedQuestions');
+    localStorage.removeItem('correctAnswers');
+    localStorage.removeItem('wrongAnswers');
+    localStorage.removeItem('questionIndex');
+    for (var i = 0; i < generatedQuestions.length; i++) {
+      localStorage.removeItem('answer_' + i);
+    }
+  }
+}
+function LoadProgressfromFile() {
+  var input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = function() {
+    var file = this.files[0];
+    var reader = new FileReader();
+    reader.onload = function() {
+      var data = JSON.parse(reader.result);
+      generatedQuestions = data.generatedQuestions;
+      correctAnswers = data.correctAnswers;
+      wrongAnswers = data.wrongAnswers;
+      questionIndex = data.questionIndex;
+      displayQuestion();
+      displayStats();
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+function saveProgressToFile() {
+  var data = {
+    generatedQuestions: generatedQuestions,
+    correctAnswers: correctAnswers,
+    wrongAnswers: wrongAnswers,
+    questionIndex: questionIndex
+  };
+
+  var filename = 'quiz-progress.json';
+
+  if (window.navigator.msSaveOrOpenBlob) { // IE10+
+    var blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+    window.navigator.msSaveOrOpenBlob(blob, filename);
+  } else {
+    var a = document.createElement('a');
+    var url = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: 'application/json' }));
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function() {
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    }, 0);
+  }
+}
+
+function init() {
+  if (localStorage.getItem('generatedQuestions')) {
+    generatedQuestions = JSON.parse(localStorage.getItem('generatedQuestions'));
+    correctAnswers = parseInt(localStorage.getItem('correctAnswers'));
+    wrongAnswers = parseInt(localStorage.getItem('wrongAnswers'));
+    questionIndex = parseInt(localStorage.getItem('questionIndex'));
+    displayQuestion();
+  } else {
+    generateQuestions();
+  }
+}
+
+    window.onload = init;
+  </script>
+
+</body>
+</html>

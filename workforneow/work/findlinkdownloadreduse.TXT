@@ -1,0 +1,164 @@
+import os
+import re
+import requests
+from pathlib import Path
+from tqdm import tqdm
+from urllib.parse import urlparse, unquote
+from PIL import Image
+
+# ====================== CONFIGURATION ======================
+TARGET_FOLDER = Path(r"F:\delete\del\rosh2024Q3000OnlinePart\rosh2024Q3000")
+
+MAX_SIZE_KB = 600
+REDUCTION_RATIO = 0.63   # ≈60% size reduction
+
+# Supported extensions
+IMAGE_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.webp', '.gif'}
+
+# Regex for image links
+LINK_PATTERN = re.compile(
+    r'https://roshreview\.imgix\.net/[^\s"\'<>]*?\.(png|jpg|jpeg|gif|webp)(?=\?|$|["\'\s<>])',
+    re.IGNORECASE
+)
+
+def extract_links():
+    """Extract all image links from .html files"""
+    print("Step 1: Extracting links from HTML files...")
+    all_links = set()
+
+    for html_file in TARGET_FOLDER.rglob("*.html"):
+        try:
+            with open(html_file, 'r', encoding='utf-8', errors='ignore') as f:
+                content = f.read()
+            
+            for match in LINK_PATTERN.finditer(content):
+                all_links.add(match.group(0))
+                
+        except Exception as e:
+            print(f"Error reading {html_file.name}: {e}")
+
+    # Save to link.txt
+    with open('link.txt', 'w', encoding='utf-8') as f:
+        for link in sorted(all_links):
+            f.write(link + '\n')
+
+    print(f"✓ Extracted {len(all_links)} unique links and saved to link.txt\n")
+    return all_links
+
+def get_filename_from_url(url):
+    """Clean filename from URL"""
+    parsed = urlparse(url)
+    filename = unquote(os.path.basename(parsed.path))
+    filename = re.sub(r'[<>:"/\\|?*]', '_', filename)
+    if not filename or '.' not in filename:
+        filename = "image_" + os.path.basename(parsed.path)[-20:] + ".png"
+    return filename
+
+def download_images():
+    """Download all images from link.txt"""
+    print("Step 2: Downloading images...")
+    
+    if not Path("link.txt").exists():
+        print("❌ link.txt not found!")
+        return
+
+    download_folder = Path("downlinks")
+    download_folder.mkdir(exist_ok=True)
+
+    with open('link.txt', 'r', encoding='utf-8') as f:
+        urls = [line.strip() for line in f if line.strip().startswith('http')]
+
+    success = 0
+    for url in tqdm(urls, desc="Downloading", unit="image"):
+        try:
+            filename = get_filename_from_url(url)
+            filepath = download_folder / filename
+
+            # Avoid overwriting - add number if exists
+            counter = 1
+            original_stem = filepath.stem
+            while filepath.exists():
+                filepath = download_folder / f"{original_stem}_{counter}{filepath.suffix}"
+                counter += 1
+
+            response = requests.get(url, stream=True, timeout=30)
+            response.raise_for_status()
+
+            with open(filepath, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    if chunk:
+                        f.write(chunk)
+            success += 1
+        except Exception:
+            pass  # Silent fail for one image, continue with others
+
+    print(f"✓ Download completed: {success}/{len(urls)} images downloaded to 'downlinks'\n")
+
+def compress_images():
+    """Compress images larger than 600 KB"""
+    print("Step 3: Compressing large images...")
+    
+    download_folder = Path("downlinks")
+    if not download_folder.exists():
+        print("❌ downlinks folder not found!")
+        return
+
+    compressed_count = 0
+    skipped = 0
+
+    for file_path in download_folder.rglob("*"):
+        if file_path.suffix.lower() not in IMAGE_EXTENSIONS:
+            continue
+
+        try:
+            size_kb = file_path.stat().st_size / 1024
+            if size_kb <= MAX_SIZE_KB:
+                skipped += 1
+                continue
+
+            print(f"Compressing: {file_path.name} ({size_kb:.1f} KB)")
+
+            with Image.open(file_path) as img:
+                new_width = int(img.width * REDUCTION_RATIO)
+                new_height = int(img.height * REDUCTION_RATIO)
+                
+                resized = img.resize((new_width, new_height), Image.LANCZOS)
+
+                new_filename = file_path.stem + "_compressed" + file_path.suffix
+                new_path = file_path.with_name(new_filename)
+
+                if file_path.suffix.lower() in {'.jpg', '.jpeg'}:
+                    resized.save(new_path, optimize=True, quality=85)
+                elif file_path.suffix.lower() == '.png':
+                    resized.save(new_path, optimize=True, compress_level=9)
+                else:
+                    resized.save(new_path, optimize=True)
+
+            compressed_count += 1
+
+        except Exception as e:
+            print(f"Error compressing {file_path.name}: {e}")
+
+    print(f"✓ Compression completed!")
+    print(f"   Compressed: {compressed_count} images")
+    print(f"   Skipped (≤600KB): {skipped} images\n")
+
+# ====================== MAIN EXECUTION ======================
+if __name__ == "__main__":
+    print("=" * 70)
+    print("ROSH REVIEW IMAGES - FULL AUTOMATION SCRIPT")
+    print("=" * 70)
+    print()
+
+    extract_links()
+    download_images()
+    compress_images()
+
+    print("=" * 70)
+    print("🎉 ALL STEPS COMPLETED SUCCESSFULLY!")
+    print("   • Links extracted → link.txt")
+    print("   • Images downloaded → downlinks folder")
+    print("   • Large images compressed with _compressed suffix")
+    print("=" * 70)
+
+    input("\nPress Enter to exit...")

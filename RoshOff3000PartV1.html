@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Rosh Review 3000</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    * { box-sizing: border-box; font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; }
+    body {
+      margin: 0;
+      padding: 10px;
+      background: #f4f7fa;
+      color: #333;
+    }
+
+    @keyframes bouncePulse {
+      0% { transform: scale(1.5); }
+      50% { transform: scale(1.58); }
+      100% { transform: scale(1.5); }
+    }
+    .bounce-active { animation: bouncePulse 0.2s ease; }
+
+    h2 { text-align: center; margin: 10px 0 5px; }
+
+    .nav-tob {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      background: #e0e0e0;
+      padding: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+      z-index: 1000;
+    }
+
+    .nav-tabs {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      display: flex;
+      justify-content: space-around;
+      background: #e0e0e0;
+      padding: 8px;
+      box-shadow: 0 -2px 6px rgba(0,0,0,0.12);
+      z-index: 1000;
+    }
+    .nav-tabs button {
+      flex: 1;
+      margin: 0 2px;
+      font-size: 1.1em;
+    }
+
+    .controls { 
+      display: flex; 
+      flex-wrap: wrap; 
+      gap: 10px; 
+      justify-content: center; 
+      margin: 90px 10px 20px;
+    }
+
+    button {
+      padding: 8px 14px;
+      font-size: 1em;
+      background: #3498db;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    button:hover { background: #2980b9; }
+
+    .resizer {
+      width: 100%;
+      height: 680px;
+      border: 1px solid #bbb;
+      background: white;
+      resize: both;
+      overflow: auto;
+      margin: 10px 0 90px;
+      border-radius: 6px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 30px;
+      margin: 20px auto;
+      max-width: 900px;
+    }
+
+    canvas { max-width: 160px; max-height: 160px; }
+
+    #notePanel { display: none; margin: 10px 0; }
+    textarea { width: 100%; padding: 10px; font-size: 1em; }
+
+    .sidebar-toggle {
+      position: fixed;
+      top: 12px;
+      left: 12px;
+      font-size: 2em;
+      cursor: pointer;
+      z-index: 2000;
+    }
+
+    .sidebar-menu {
+      position: fixed;
+      top: 0; left: -260px;
+      width: 250px;
+      height: 100%;
+      background: white;
+      border-right: 1px solid #ddd;
+      box-shadow: 3px 0 10px rgba(0,0,0,0.15);
+      padding: 20px;
+      transition: left 0.3s ease;
+      z-index: 1999;
+      overflow-y: auto;
+    }
+    .sidebar-menu.open { left: 0; }
+
+    #progress-bar { 
+      width: 100%; 
+      height: 24px; 
+      margin: 10px 0; 
+      display: none; 
+    }
+
+    #timer, #stats { text-align: center; font-weight: bold; margin: 8px 0; }
+  </style>
+</head>
+<body>
+
+  <div class="sidebar-toggle" onclick="toggleSidebar()">☰</div>
+
+  <div id="sidebarMenu" class="sidebar-menu">
+    <h4>Show / Hide Buttons:</h4>
+    <label><input type="checkbox" onchange="toggleButton('btn-generate')" checked> 🎲 Generate</label><br>
+    <label><input type="checkbox" onchange="toggleButton('btn-save')" checked> 💾 Save</label><br>
+    <label><input type="checkbox" onchange="toggleButton('btn-load')" checked> 📂 Load</label><br>
+    <label><input type="checkbox" onchange="toggleButton('btn-timer')" checked> ⏱ Timer</label><br>
+    <label><input type="checkbox" onchange="toggleButton('btn-correct')" checked> ✅ Correct</label><br>
+    <label><input type="checkbox" onchange="toggleButton('btn-wrong')" checked> ❌ Wrong</label><br>
+    <label><input type="checkbox" onchange="toggleButton('btn-prev')" checked> ⬅ Previous</label><br>
+    <label><input type="checkbox" onchange="toggleButton('btn-next')" checked> ➡️ Next</label><br>
+    <label><input type="checkbox" onchange="toggleButton('btn-note')" checked> 📝 Note</label><br>
+    <label><input type="checkbox" onchange="toggleButton('btn-go');toggleButton('gotoQ');toggleButton('lbl-go')" checked> Go to #</label><br>
+    <br>
+    <hr>
+    <input type="text" id="searchInput" placeholder="Search keyword..." style="width:100%; padding:8px;" />
+    <button onclick="searchInFiles()" style="margin-top:10px; width:100%;">Search</button>
+    <div id="searchResults" style="margin-top:15px;"></div>
+    <div id="progressBarContainer" style="margin:15px 0; display:none;">
+      <progress id="progress-bar" value="0" max="100"></progress>
+      <div id="etaText" style="text-align:center; font-size:0.9em; color:#555;"></div>
+    </div>
+  </div>
+
+  <h2>Rosh Review 3000</h2>
+
+  <div class="nav-tob">
+    <span id="lbl-generate">Questions:</span>
+    <input type="number" id="numQuestions" value="100" min="1" max="3007" style="width:90px;" />
+    <button id="btn-generate" onclick="generateQuestions()">🎲 Generate</button>
+
+    <button id="btn-save" onclick="saveProgressToFile()">💾 Save</button>
+    <button id="btn-load" onclick="LoadProgressfromFile()">📂 Load</button>
+    <button id="btn-timer" onclick="startTimer(generatedQuestions.length)">⏱ Timer</button>
+
+    <button id="btn-correct" onclick="markAnswer(true)">✅ Correct</button>
+    <button id="btn-wrong" onclick="markAnswer(false)">❌ Wrong</button>
+
+    <button id="btn-prev" onclick="previousQuestion()">⬅ Previous</button>
+    <button id="btn-next" onclick="nextQuestion()">➡️ Next</button>
+
+    <span id="lbl-go">Go to:</span>
+    <input type="number" id="gotoQ" value="1" min="1" style="width:70px;" />
+    <button id="btn-go" onclick="gotoQuestion()">Go</button>
+
+    <button id="btn-note" onclick="toggleNotePanel()">📝 Note</button>
+  </div>
+
+  <div id="notePanel">
+    <textarea id="noteArea" rows="5" placeholder="Your notes..."></textarea>
+  </div>
+
+  <div id="questionNumbers" style="text-align:center; margin:90px 10px 10px; font-weight:bold;"></div>
+  <iframe id="questionFrame" class="resizer"></iframe>
+
+  <textarea id="answerBox" rows="2" placeholder="Answer summary..." style="width:100%; margin:10px 0;"></textarea>
+
+  <div class="container">
+    <div id="stats" style="min-width:220px;"></div>
+    <canvas id="statsChart"></canvas>
+    <div id="timer" style="font-size:1.3em;"></div>
+  </div>
+
+  <textarea id="answerBox2" rows="2" placeholder="Extra notes..." style="width:100%; margin-bottom:90px;"></textarea>
+
+  <div class="nav-tabs">
+    <button onclick="previousQuestion()">⬅ Previous</button>
+    <button onclick="nextQuestion()">Next ➡️</button>
+    <button onclick="toggleNotePanel()">📝</button>
+    <button onclick="LoadProgressfromFile()">📂 Load</button>
+    <button onclick="saveProgressToFile()">💾 Save</button>
+  </div>
+
+  <script>
+    let questionIndex = 0;
+    let generatedQuestions = [];
+    let correctAnswers = 0;
+    let wrongAnswers = 0;
+
+    const timerEl = document.getElementById("timer");
+    const statsEl = document.getElementById("stats");
+
+    function getFolder(num) {
+      if (num <= 399)    return 1;
+      if (num <= 799)    return 2;
+      if (num <= 1199)   return 3;
+      if (num <= 1599)   return 4;
+      if (num <= 1999)   return 5;
+      if (num <= 2399)   return 6;
+      if (num <= 2799)   return 7;
+      return 8; // 2800–3007
+    }
+
+    function generateQuestions() {
+      const num = Math.min(parseInt(document.getElementById('numQuestions').value) || 100, 3007);
+      generatedQuestions = [];
+      const used = new Set();
+
+      while (generatedQuestions.length < num) {
+        const rand = Math.floor(Math.random() * 3007) + 1;
+        if (!used.has(rand)) {
+          used.add(rand);
+          generatedQuestions.push(rand);
+        }
+      }
+
+      questionIndex = 0;
+      displayQuestion();
+    }
+
+    function displayQuestion() {
+      if (!generatedQuestions.length) return;
+
+      const qNum = generatedQuestions[questionIndex];
+      const folder = getFolder(qNum);
+      const path = `${folder}/${qNum}.html`;
+
+      document.getElementById('questionNumbers').innerHTML = 
+        `Current: <a href="${path}" target="_blank">${qNum}</a>  ( ${questionIndex+1} / ${generatedQuestions.length} )`;
+
+      document.getElementById('questionFrame').src = path;
+    }
+
+    function previousQuestion() {
+      if (questionIndex > 0) {
+        questionIndex--;
+        displayQuestion();
+      }
+    }
+
+    function nextQuestion() {
+      if (questionIndex < generatedQuestions.length - 1) {
+        questionIndex++;
+        displayQuestion();
+      }
+    }
+
+    function gotoQuestion() {
+      const target = parseInt(document.getElementById('gotoQ').value) - 1;
+      if (target >= 0 && target < generatedQuestions.length) {
+        questionIndex = target;
+        displayQuestion();
+      }
+    }
+
+    function markAnswer(isCorrect) {
+      if (isCorrect) correctAnswers++;
+      else wrongAnswers++;
+      document.getElementById('answerBox').value += 
+        `Q${questionIndex+1}: ${isCorrect ? "Correct" : "Wrong"}    `;
+      displayStats();
+    }
+
+    function displayStats() {
+      const total = correctAnswers + wrongAnswers;
+      const pctCorrect = total ? Math.round((correctAnswers / total) * 100) : 0;
+      const pctWrong   = 100 - pctCorrect;
+
+      statsEl.textContent = `Answered: ${total}   ✅ ${pctCorrect}%   ❌ ${pctWrong}%`;
+
+      const ctx = document.getElementById('statsChart').getContext('2d');
+      if (window.myChart) window.myChart.destroy();
+
+      window.myChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Correct', 'Wrong'],
+          datasets: [{
+            data: [pctCorrect, pctWrong],
+            backgroundColor: ['#4CAF50', '#F44336'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          cutout: '75%',
+          plugins: { legend: { display: false } },
+          animation: { duration: 1200 }
+        }
+      });
+    }
+
+    function startTimer(questionCount) {
+      let timeLeft = (questionCount || 100) * 60;
+      timerEl.textContent = '';
+      const iv = setInterval(() => {
+        timeLeft--;
+        const m = Math.floor(timeLeft / 60);
+        const s = timeLeft % 60;
+        timerEl.textContent = `⏱ ${m}:${s<10?'0':''}${s}`;
+
+        if (timeLeft <= 0) {
+          clearInterval(iv);
+          alert("Time's up!");
+        }
+      }, 1000);
+    }
+
+    function toggleNotePanel() {
+      const p = document.getElementById("notePanel");
+      p.style.display = p.style.display === "none" ? "block" : "none";
+    }
+
+    function saveProgressToFile() {
+      const data = {
+        generatedQuestions,
+        correctAnswers,
+        wrongAnswers,
+        questionIndex,
+        answerBox: document.getElementById('answerBox').value,
+        answerBox2: document.getElementById('answerBox2').value
+      };
+      const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'roshoff3000-progress.json';
+      a.click();
+    }
+
+    function LoadProgressfromFile() {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.json';
+      input.onchange = e => {
+        const reader = new FileReader();
+        reader.onload = ev => {
+          const data = JSON.parse(ev.target.result);
+          generatedQuestions = data.generatedQuestions || [];
+          correctAnswers = data.correctAnswers || 0;
+          wrongAnswers  = data.wrongAnswers  || 0;
+          questionIndex = data.questionIndex || 0;
+          document.getElementById('answerBox').value  = data.answerBox  || '';
+          document.getElementById('answerBox2').value = data.answerBox2 || '';
+          displayQuestion();
+          displayStats();
+        };
+        reader.readAsText(e.target.files[0]);
+      };
+      input.click();
+    }
+
+    // ───────────────────────────────────────────────
+    // Search (similar to v35)
+    // ───────────────────────────────────────────────
+    async function searchInFiles() {
+      const keyword = document.getElementById("searchInput").value.trim();
+      if (!keyword) return alert("Enter a keyword");
+
+      const resultsEl = document.getElementById("searchResults");
+      const progContainer = document.getElementById("progressBarContainer");
+      const progress = document.getElementById("progress-bar");
+      const etaEl = document.getElementById("etaText");
+
+      resultsEl.innerHTML = "Searching...";
+      progContainer.style.display = "block";
+      progress.value = 0;
+
+      const matches = [];
+      const startTime = Date.now();
+      const total = 3007;
+
+      for (let i = 1; i <= 3007; i++) {
+        const folder = getFolder(i);
+        const path = `${folder}/${i}.html`;
+
+        try {
+          const res = await fetch(path);
+          if (res.ok) {
+            const txt = await res.text();
+            if (txt.toLowerCase().includes(keyword.toLowerCase())) {
+              matches.push(`<a href="${path}" target="_blank">${i} (${folder})</a>`);
+            }
+          }
+        } catch {}
+
+        const done = i;
+        progress.value = (done / total) * 100;
+        const elapsed = Date.now() - startTime;
+        const perFile = elapsed / done;
+        const remain = (total - done) * perFile / 1000;
+        etaEl.textContent = remain > 0 ? `ETA ~ ${Math.round(remain)} s` : "";
+
+        await new Promise(r => setTimeout(r, 0)); // prevent blocking
+      }
+
+      progContainer.style.display = "none";
+
+      if (matches.length === 0) {
+        resultsEl.innerHTML = `No matches for "${keyword}"`;
+      } else {
+        resultsEl.innerHTML = `<b>Found ${matches.length} files:</b><br>` + matches.join("<br>");
+      }
+    }
+
+    function toggleSidebar() {
+      document.getElementById("sidebarMenu").classList.toggle("open");
+    }
+
+    function toggleButton(id) {
+      const el = document.getElementById(id);
+      if (el) el.style.display = el.style.display === "none" ? "" : "none";
+    }
+
+    document.querySelectorAll("button").forEach(btn => {
+      btn.addEventListener("click", () => {
+        btn.classList.add("bounce-active");
+        setTimeout(() => btn.classList.remove("bounce-active"), 400);
+      });
+    });
+
+    // Auto-close sidebar when clicking outside
+    document.addEventListener('click', e => {
+      const menu = document.getElementById('sidebarMenu');
+      const toggle = document.querySelector('.sidebar-toggle');
+      if (menu.classList.contains('open') && !menu.contains(e.target) && !toggle.contains(e.target)) {
+        menu.classList.remove('open');
+      }
+    });
+
+    // Init
+    window.onload = () => {
+      // You can uncomment to auto-generate on load:
+      // generateQuestions();
+      // or try to auto-load saved progress if exists (fetch('./roshoff3000-progress.json'))
+    };
+  </script>
+</body>
+</html>

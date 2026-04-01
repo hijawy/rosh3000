@@ -1,0 +1,11 @@
+for all 
+pip install requests tqdm Pillow
+
+
+
+for downloadlink.py
+pip install requests tqdm
+
+
+for compressBigPic
+pip install Pillow

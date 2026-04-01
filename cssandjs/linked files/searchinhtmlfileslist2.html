@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Search in 5000 Files</title>
+    <meta charset="utf-8" />
+    <script type="text/javascript">
+        function searchFiles() {
+            var searchText = document.getElementById("searchText").value;
+            for (let i = 525583621; i < 525583621 + 5000; i++) {
+                var fileName = i + ".html";
+                var fileText = readFile(fileName);
+                if (fileText.indexOf(searchText) > -1) {
+                    document.write("<b>File Name: </b>" + fileName + "<br>");
+                    document.write("<b>Matching Text: </b>" + fileText.substring(fileText.indexOf(searchText), fileText.length) + "<br><br>");
+                }
+            }
+        }
+
+        function readFile(fileName) {
+            // code to read file goes here
+        }
+    </script>
+</head>
+
+<body>
+    <h2>Search Files</h2>
+    <p>Enter the text you want to search for:</p>
+    <input type="text" id="searchText" />
+    <input type="button" value="Search" onclick="searchFiles()" />
+</body>
+
+</html>
